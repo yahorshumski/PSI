@@ -5,7 +5,7 @@ from datetime import datetime
 import time
 
 # Configuration
-API_BASE_URL = "your-api-gateway-url"
+API_BASE_URL = "https://qouhox6u4d.execute-api.us-west-1.amazonaws.com"
 REFRESH_INTERVAL = 60  # seconds
 
 def load_token_data():
