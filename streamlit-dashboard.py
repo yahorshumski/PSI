@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import requests
 from datetime import datetime
 import time
@@ -42,6 +43,34 @@ def delete_token(address):
         st.error(f"Error deleting token: {str(e)}")
         return False
 
+def style_rsi(val):
+    """Style function for RSI values"""
+    if pd.isna(val):
+        return ''
+    try:
+        val = float(val)
+        if val >= 70:
+            return 'background-color: #ff7f7f'
+        elif val >= 60:
+            return 'background-color: #ffb07f'
+    except:
+        pass
+    return ''
+
+def style_price_change(val):
+    """Style function for price changes"""
+    if pd.isna(val):
+        return ''
+    try:
+        val = float(val)
+        if val > 0:
+            return 'color: #00ff00'
+        elif val < 0:
+            return 'color: #ff0000'
+    except:
+        pass
+    return ''
+
 def main():
     st.set_page_config(page_title="Token Monitor", layout="wide")
     st.title("Token Performance Monitor")
@@ -57,7 +86,7 @@ def main():
         if st.button("Add Token"):
             if add_token(token_name, token_address):
                 st.success(f"Added {token_name}")
-                time.sleep(1)  # Allow time for success message
+                time.sleep(1)
                 st.rerun()
             else:
                 st.error("Failed to add token")
@@ -84,18 +113,7 @@ def main():
         df = st.session_state.get('data', pd.DataFrame())
     
     if not df.empty:
-        # Style functions
-        def highlight_rsi(data):
-            """Highlight RSI values"""
-            return np.where(data >= 70, 'background-color: #ff7f7f',
-                   np.where(data >= 60, 'background-color: #ffb07f', ''))
-
-        def highlight_price_change(data):
-            """Color price changes"""
-            return np.where(data > 0, 'color: #00ff00',
-                   np.where(data < 0, 'color: #ff0000', ''))
-        
-        # Display table with styling
+        # Style the dataframe
         styled_df = df.style\
             .format({
                 'current_price': '${:.4f}',
@@ -105,15 +123,20 @@ def main():
                 'price_change_24h': '{:+.2f}%',
                 'last_update': lambda x: pd.to_datetime(x).strftime('%Y-%m-%d %H:%M:%S')
             })\
-            .map(highlight_rsi, subset=['rsi_1m', 'rsi_1h'])\
-            .map(highlight_price_change, subset=['price_change_30m', 'price_change_24h'])\
+            .map(style_rsi, subset=['rsi_1m', 'rsi_1h'])\
+            .map(style_price_change, subset=['price_change_30m', 'price_change_24h'])\
             .set_properties(**{
                 'background-color': 'black',
                 'color': 'white',
                 'border-color': 'white'
             })
         
-        st.dataframe(styled_df, height=600, use_container_width=True)
+        # Display the dataframe
+        st.dataframe(
+            styled_df,
+            height=600,
+            use_container_width=True
+        )
         
         # Token management
         with st.expander("Manage Tokens"):
@@ -125,13 +148,13 @@ def main():
                     if st.button("Delete", key=row['token_address']):
                         if delete_token(row['token_address']):
                             st.success(f"Removed {row['token_name']}")
-                            time.sleep(1)  # Allow time for success message
+                            time.sleep(1)
                             st.rerun()
                         else:
                             st.error("Failed to delete token")
     
     # Auto-refresh
-    time.sleep(0.1)  # Prevent excessive refreshes
+    time.sleep(0.1)
     st.rerun()
 
 if __name__ == "__main__":
