@@ -99,7 +99,7 @@ def style_dataframe(df):
 
         # Apply formatting and styling
         return df.style.format({
-            'current_price': '${:.4f}',
+            'current_price': '${:.8f}',
             'rsi_1m': '{:.2f}',
             'rsi_1h': '{:.2f}',
             'price_change_30m': '{:+.2f}%',
@@ -196,24 +196,7 @@ def main():
                                 st.rerun()
                             else:
                                 st.error("Failed to delete token")
-            '''
-            # Quick reference section
-            with st.expander("Quick Reference"):
-                st.markdown("### Token Addresses")
-                cols = st.columns(2)
-                for i, (_, row) in enumerate(df.iterrows()):
-                    with cols[i % 2]:
-                        st.markdown(f"""
-                            <div style='margin: 10px 0;'>
-                                <div class='token-name'>{row['token_name']}</div>
-                                <div class='address-container' 
-                                     title='Click to copy'
-                                     onclick="navigator.clipboard.writeText('{row['token_address']}')">
-                                    {row['token_address']}
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
-            '''
+
         except Exception as e:
             st.error(f"Error displaying data: {str(e)}")
     
