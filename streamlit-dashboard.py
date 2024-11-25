@@ -108,8 +108,8 @@ def style_dataframe(df):
         }).map(style_rsi, subset=['rsi_1m', 'rsi_1h'])\
           .map(style_price_change, subset=['price_change_30m', 'price_change_24h'])\
           .set_properties(**{
-              'background-color': 'black',
-              'color': 'white',
+              'background-color': 'white',
+              'color': 'black',
               'border-color': 'white'
           })
     except Exception as e:
@@ -196,7 +196,7 @@ def main():
                                 st.rerun()
                             else:
                                 st.error("Failed to delete token")
-            
+            '''
             # Quick reference section
             with st.expander("Quick Reference"):
                 st.markdown("### Token Addresses")
@@ -213,7 +213,7 @@ def main():
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
-        
+            '''
         except Exception as e:
             st.error(f"Error displaying data: {str(e)}")
     
