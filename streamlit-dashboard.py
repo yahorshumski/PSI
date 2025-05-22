@@ -67,13 +67,47 @@ def delete_token(address):
         st.error(f"Error deleting token: {str(e)}")
         return False
 
+def init_session_state():
+    """Initialize session state variables"""
+    if 'last_refresh' not in st.session_state:
+        st.session_state.last_refresh = 0
+    if 'data' not in st.session_state:
+        st.session_state.data = pd.DataFrame()
+
+def safe_format_number(val, format_string):
+    """Safely format numeric values, handling None/NaN"""
+    if val is None or pd.isna(val):
+        return 'N/A'
+    try:
+        return format_string.format(float(val))
+    except (ValueError, TypeError):
+        return 'N/A'
+
+def safe_format_datetime(val):
+    """Safely format datetime values"""
+    if val is None or pd.isna(val):
+        return 'N/A'
+    try:
+        return pd.to_datetime(val).strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        return 'N/A'
+
 def style_dataframe(df):
     """Apply styling to dataframe safely"""
     try:
+        # Clean the data first
+        df_clean = df.copy()
+        
+        # Replace None/NaN values with appropriate defaults for styling
+        numeric_columns = ['current_price', 'rsi_1m', 'rsi_1h', 'price_change_30m', 'price_change_24h']
+        for col in numeric_columns:
+            if col in df_clean.columns:
+                df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
+        
         # Define style functions
         def style_rsi(val):
             try:
-                if pd.isna(val):
+                if pd.isna(val) or val is None:
                     return ''
                 val = float(val)
                 if val >= 70:
@@ -86,7 +120,7 @@ def style_dataframe(df):
 
         def style_price_change(val):
             try:
-                if pd.isna(val):
+                if pd.isna(val) or val is None:
                     return ''
                 val = float(val)
                 if val > 0:
@@ -97,21 +131,46 @@ def style_dataframe(df):
                 return ''
             return ''
 
+        # Custom formatter function
+        def format_currency(val):
+            return safe_format_number(val, '${:.4f}')
+        
+        def format_percentage(val):
+            return safe_format_number(val, '{:+.2f}%')
+        
+        def format_decimal(val):
+            return safe_format_number(val, '{:.2f}')
+
         # Apply formatting and styling
-        return df.style.format({
-            'current_price': '${:.8f}',
-            'rsi_1m': '{:.2f}',
-            'rsi_1h': '{:.2f}',
-            'price_change_30m': '{:+.2f}%',
-            'price_change_24h': '{:+.2f}%',
-            'last_update': lambda x: pd.to_datetime(x).strftime('%Y-%m-%d %H:%M:%S')
-        }).map(style_rsi, subset=['rsi_1m', 'rsi_1h'])\
-          .map(style_price_change, subset=['price_change_30m', 'price_change_24h'])\
-          .set_properties(**{
-              'background-color': 'white',
-              'color': 'black',
-              'border-color': 'white'
-          })
+        styler = df_clean.style.format({
+            'current_price': format_currency,
+            'rsi_1m': format_decimal,
+            'rsi_1h': format_decimal,
+            'price_change_30m': format_percentage,
+            'price_change_24h': format_percentage,
+            'last_update': safe_format_datetime
+        })
+        
+        # Apply conditional styling only to columns that exist
+        if 'rsi_1m' in df_clean.columns or 'rsi_1h' in df_clean.columns:
+            rsi_cols = [col for col in ['rsi_1m', 'rsi_1h'] if col in df_clean.columns]
+            if rsi_cols:
+                styler = styler.map(style_rsi, subset=rsi_cols)
+        
+        if 'price_change_30m' in df_clean.columns or 'price_change_24h' in df_clean.columns:
+            price_cols = [col for col in ['price_change_30m', 'price_change_24h'] if col in df_clean.columns]
+            if price_cols:
+                styler = styler.map(style_price_change, subset=price_cols)
+        
+        # Apply general styling
+        styler = styler.set_properties(**{
+            'background-color': 'black',
+            'color': 'white',
+            'border-color': 'white'
+        })
+        
+        return styler
+        
     except Exception as e:
         st.error(f"Error styling dataframe: {str(e)}")
         return df.style
@@ -119,6 +178,7 @@ def style_dataframe(df):
 def main():
     st.set_page_config(page_title="Token Monitor", layout="wide")
     add_custom_css()
+    init_session_state()
     st.title("Token Performance Monitor")
     
     # Add new token section
@@ -138,33 +198,40 @@ def main():
                 st.error("Failed to add token")
     
     # Main data display
-    if 'last_refresh' not in st.session_state:
-        st.session_state.last_refresh = 0
-    
     current_time = time.time()
     if current_time - st.session_state.last_refresh >= REFRESH_INTERVAL:
         data = load_token_data()
         if data:
             try:
                 df = pd.DataFrame(data)
-                # Ensure all required columns exist
+                # Ensure all required columns exist with proper defaults
                 required_columns = [
                     'token_name', 'token_address', 'current_price',
-                    'rsi_1m', 'rsi_1h', 'price_change_30m', 'price_change_24h',
+                    'price_change_30m', 'price_change_24h',
                     'last_update'
                 ]
+                
+                # Only include RSI columns if they exist in the data
+                if any('rsi_' in str(col) for col in df.columns):
+                    if 'rsi_1m' in df.columns:
+                        required_columns.insert(-1, 'rsi_1m')
+                    if 'rsi_1h' in df.columns:
+                        required_columns.insert(-1, 'rsi_1h')
+                
+                # Add missing columns with None values
                 for col in required_columns:
                     if col not in df.columns:
                         df[col] = None
                 
-                df = df[required_columns]  # Reorder columns
+                # Reorder columns
+                df = df[required_columns]
                 st.session_state.data = df
                 st.session_state.last_refresh = current_time
             except Exception as e:
                 st.error(f"Error processing data: {str(e)}")
                 return
-    else:
-        df = st.session_state.get('data', pd.DataFrame())
+    
+    df = st.session_state.data
     
     if not df.empty:
         try:
@@ -196,12 +263,29 @@ def main():
                                 st.rerun()
                             else:
                                 st.error("Failed to delete token")
-
+            
+            # Quick reference section
+            with st.expander("Quick Reference"):
+                st.markdown("### Token Addresses")
+                cols = st.columns(2)
+                for i, (_, row) in enumerate(df.iterrows()):
+                    with cols[i % 2]:
+                        st.markdown(f"""
+                            <div style='margin: 10px 0;'>
+                                <div class='token-name'>{row['token_name']}</div>
+                                <div class='address-container' 
+                                     title='Click to copy'
+                                     onclick="navigator.clipboard.writeText('{row['token_address']}')">
+                                    {row['token_address']}
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
+        
         except Exception as e:
             st.error(f"Error displaying data: {str(e)}")
     
     # Auto-refresh
-    time.sleep(30)
+    time.sleep(0.1)
     st.rerun()
 
 if __name__ == "__main__":
