@@ -22,7 +22,7 @@ def add_custom_css():
             margin: 4px 0;
         }
         .token-name {
-            color: #1E1E1E;
+            color: #000000;
             font-weight: bold;
         }
         .copy-hint {
@@ -46,6 +46,8 @@ def load_token_data():
         st.error(f"Error loading data: {str(e)}")
         return []
 
+    
+
 def add_token(name, address):
     """Add new token via API"""
     try:
@@ -63,6 +65,7 @@ def add_token(name, address):
             
     except Exception as e:
         return False, f"Error adding token: {str(e)}"
+    
 
 def delete_token(address):
     """Delete token via API"""
@@ -194,19 +197,19 @@ def main():
             token_name = st.text_input("Token Name")
         with col2:
             token_address = st.text_input("Token Address")
-
+        
 
         if st.button("Add Token"):
-        if token_name and token_address:  # Check that both fields have values
-            success, message = add_token(token_name, token_address)
-            if success:
-                st.success(message)
-                time.sleep(1)
-                st.rerun()
+            if token_name and token_address:  # Check that both fields have values
+                success, message = add_token(token_name, token_address)
+                if success:
+                    st.success(message)
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error(message)
             else:
-                st.error(message)
-        else:
-            st.error("Please enter both token name and address")
+                st.error("Please enter both token name and address")        
     
     # Main data display
     current_time = time.time()
