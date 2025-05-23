@@ -14,7 +14,7 @@ def add_custom_css():
     st.markdown("""
         <style>
         .address-container {
-            background-color: #4CAF50;
+            background-color: #ffffff;
             padding: 8px;
             border-radius: 4px;
             font-family: monospace;
