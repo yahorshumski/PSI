@@ -14,7 +14,7 @@ def add_custom_css():
     st.markdown("""
         <style>
         .address-container {
-            background-color: #ffffff;
+            background-color: #1E1E1E;
             padding: 8px;
             border-radius: 4px;
             font-family: monospace;
@@ -22,7 +22,7 @@ def add_custom_css():
             margin: 4px 0;
         }
         .token-name {
-            color: #000000;
+            color: #4CAF50;
             font-weight: bold;
         }
         .copy-hint {
@@ -173,9 +173,9 @@ def style_dataframe(df):
         
         # Apply general styling
         styler = styler.set_properties(**{
-            'background-color': 'black',
-            'color': 'white',
-            'border-color': 'white'
+            'background-color': 'white',
+            'color': 'black',
+            'border-color': 'gray'
         })
         
         return styler
