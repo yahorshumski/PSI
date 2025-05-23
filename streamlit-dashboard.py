@@ -14,7 +14,7 @@ def add_custom_css():
     st.markdown("""
         <style>
         .address-container {
-            background-color: #1E1E1E;
+            background-color: #4CAF50;
             padding: 8px;
             border-radius: 4px;
             font-family: monospace;
@@ -22,7 +22,7 @@ def add_custom_css():
             margin: 4px 0;
         }
         .token-name {
-            color: #4CAF50;
+            color: #1E1E1E;
             font-weight: bold;
         }
         .copy-hint {
@@ -53,10 +53,16 @@ def add_token(name, address):
             f"{API_BASE_URL}/tokens",
             json={'token_name': name, 'token_address': address}
         )
-        return response.status_code == 201
+        
+        # Handle both success cases: 201 (created) and 200 (re-added)
+        if response.status_code in [200, 201]:
+            return True, response.json().get('message', 'Token added successfully')
+        else:
+            error_detail = response.json().get('error', 'Unknown error') if response.text else 'No response'
+            return False, f"Failed to add token: {error_detail}"
+            
     except Exception as e:
-        st.error(f"Error adding token: {str(e)}")
-        return False
+        return False, f"Error adding token: {str(e)}"
 
 def delete_token(address):
     """Delete token via API"""
@@ -188,14 +194,19 @@ def main():
             token_name = st.text_input("Token Name")
         with col2:
             token_address = st.text_input("Token Address")
-        
+
+
         if st.button("Add Token"):
-            if add_token(token_name, token_address):
-                st.success(f"Added {token_name}")
+        if token_name and token_address:  # Check that both fields have values
+            success, message = add_token(token_name, token_address)
+            if success:
+                st.success(message)
                 time.sleep(1)
                 st.rerun()
             else:
-                st.error("Failed to add token")
+                st.error(message)
+        else:
+            st.error("Please enter both token name and address")
     
     # Main data display
     current_time = time.time()
